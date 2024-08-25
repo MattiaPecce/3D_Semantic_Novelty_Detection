@@ -626,6 +626,38 @@ def train(opt, config):
             f"Training finished - best test acc: {best_acc:.4f} at ep.: {best_epoch}, time: {train_time}"
         )
 
+def log_misclassified_samples(log_file, src_MSP_scores, tar1_MSP_scores, tar2_MSP_scores, 
+                              src_pred, tar1_pred, tar2_pred, 
+                              src_labels, tar1_labels, tar2_labels, 
+                              threshold=0.99):
+    """
+    Logs samples with a confidence (MSP score) above the given threshold that are misclassified.
+    """
+    with open(log_file, 'w') as f:
+        f.write("Misclassified Samples with MSP score > {:.2f}\n".format(threshold))
+        f.write("="*60 + "\n")
+        
+        # Function to log a specific sample
+        def log_sample(dataset_name, index, confidence, pred, label):
+            f.write(f"{dataset_name} - Sample {index}: Conf: {confidence:.4f}, Pred: {pred}, Label: {label}\n")
+        
+        # Check SRC samples
+        for i, (score, pred, label) in enumerate(zip(src_MSP_scores, src_pred, src_labels)):
+            if score > threshold and pred != label:
+                log_sample("SRC", i, score, pred.item(), label.item())
+        
+        # Check TAR1 samples
+        for i, (score, pred, label) in enumerate(zip(tar1_MSP_scores, tar1_pred, tar1_labels)):
+            if score > threshold and pred != label:
+                log_sample("TAR1", i, score, pred.item(), label.item())
+        
+        # Check TAR2 samples
+        for i, (score, pred, label) in enumerate(zip(tar2_MSP_scores, tar2_pred, tar2_labels)):
+            if score > threshold and pred != label:
+                log_sample("TAR2", i, score, pred.item(), label.item())
+                
+    print(f"Misclassified samples log saved to {log_file}")
+
 
 def eval_ood_md2sonn(opt, config):
     print(f"Arguments: {opt}")
@@ -711,6 +743,12 @@ def eval_ood_md2sonn(opt, config):
     #     ],  # computes also MSP accuracy on ID test set
     #     src_label=1,
     # )
+     # Log misclassified samples
+    log_file = os.path.join(opt.output_dir, "misclassified_samples.log")
+    log_misclassified_samples(log_file, src_MSP_scores, tar1_MSP_scores, tar2_MSP_scores, 
+                              src_pred, tar1_pred, tar2_pred, 
+                              src_labels, tar1_labels, tar2_labels, 
+                              threshold=0.99)
 
 
 
