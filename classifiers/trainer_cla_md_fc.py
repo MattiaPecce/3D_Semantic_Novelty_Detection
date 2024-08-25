@@ -701,63 +701,32 @@ def eval_ood_md2sonn(opt, config):
     src_MSP_scores = F.softmax(src_logits, dim=1).max(1)[0]
     tar1_MSP_scores = F.softmax(tar1_logits, dim=1).max(1)[0]
     tar2_MSP_scores = F.softmax(tar2_logits, dim=1).max(1)[0]
-    eval_ood_sncore(
-        scores_list=[src_MSP_scores, tar1_MSP_scores, tar2_MSP_scores],
-        preds_list=[src_pred, None, None],  # computes also MSP accuracy on ID test set
-        labels_list=[
-            src_labels,
-            tar1_labels,
-            tar2_labels,
-        ],  # computes also MSP accuracy on ID test set
-        src_label=1,
-    )
+    # eval_ood_sncore(
+    #     scores_list=[src_MSP_scores, tar1_MSP_scores, tar2_MSP_scores],
+    #     preds_list=[src_pred, tar1_pred, tar2_pred],  # computes also MSP accuracy on ID test set
+    #     labels_list=[
+    #         src_labels,
+    #         tar1_labels,
+    #         tar2_labels,
+    #     ],  # computes also MSP accuracy on ID test set
+    #     src_label=1,
+    # )
+
+
+
     print("#" * 80)
 
-    # MLS
-    print("\n" + "#" * 80)
-    print("Computing OOD metrics with MLS normality score...")
-    src_MLS_scores = src_logits.max(1)[0]
-    tar1_MLS_scores = tar1_logits.max(1)[0]
-    tar2_MLS_scores = tar2_logits.max(1)[0]
-    eval_ood_sncore(
-        scores_list=[src_MLS_scores, tar1_MLS_scores, tar2_MLS_scores],
-        preds_list=[src_pred, tar1_pred, tar2_pred],  # computes also MSP accuracy on ID test set
-        labels_list=[
-            src_labels,
-            tar1_labels,
-            tar2_labels,
-        ],  # computes also MSP accuracy on ID test set
-        src_label=1,
-    )
-    print("#" * 80)
+    
 
-    # entropy
-    print("\n" + "#" * 80)
-    src_entropy_scores = 1 / logits_entropy_loss(src_logits)
-    tar1_entropy_scores = 1 / logits_entropy_loss(tar1_logits)
-    tar2_entropy_scores = 1 / logits_entropy_loss(tar2_logits)
-    print("Computing OOD metrics with entropy normality score...")
-    eval_ood_sncore(
-        scores_list=[src_entropy_scores, tar1_entropy_scores, tar2_entropy_scores],
-        preds_list=[src_pred, None, None],  # computes also MSP accuracy on ID test set
-        labels_list=[
-            src_labels,
-            None,
-            None,
-        ],  # computes also MSP accuracy on ID test set
-        src_label=1,
-    )
-    print("#" * 80)
-
-    # FEATURES EVALUATION
-    eval_OOD_with_feats(
-        model,
-        train_loader,
-        id_loader,
-        ood1_loader,
-        ood2_loader,
-        save_feats=opt.save_feats,
-    )
+    # # FEATURES EVALUATION
+    # eval_OOD_with_feats(
+    #     model,
+    #     train_loader,
+    #     id_loader,
+    #     ood1_loader,
+    #     ood2_loader,
+    #     save_feats=opt.save_feats,
+    # )
 
     return
 
@@ -940,6 +909,109 @@ def main():
         assert args.ckpt_path is not None and len(args.ckpt_path)
         print("out-of-distribution eval - Modelnet -> SONN ..")
         eval_ood_md2sonn(args, config)
+
+
+
+
+# import numpy as np
+# from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score, f1_score
+
+# def find_optimal_threshold(confidences, labels):
+#     """
+#     Trova la soglia ottimale per MSP utilizzando il set di validazione.
+    
+#     confidences: Lista delle confidenze (softmax probabilities) per il set di validazione
+#     labels: Lista delle etichette vere per il set di validazione
+#     """
+#     thresholds = np.linspace(0, 1, 100)
+#     best_threshold = 0
+#     best_score = 0
+
+#     for threshold in thresholds:
+#         preds = (confidences >= threshold).astype(int)
+#         accuracy = accuracy_score(labels, preds)
+#         precision = precision_score(labels, preds)
+#         recall = recall_score(labels, preds)
+#         f1 = f1_score(labels, preds)
+#         auc = roc_auc_score(labels, preds)
+        
+#         # Puoi scegliere di ottimizzare una combinazione di metriche
+#         score = (accuracy + precision + recall + f1 + auc) / 5
+        
+#         if score > best_score:
+#             best_score = score
+#             best_threshold = threshold
+
+#     return best_threshold
+
+# # Esempio di utilizzo
+# validation_confidences = np.array([0.9, 0.2, 0.8, 0.4, 0.7])
+# validation_labels = np.array([1, 0, 1, 0, 1])
+# optimal_threshold = find_optimal_threshold(validation_confidences, validation_labels)
+# print(f"Soglia ottimale: {optimal_threshold}")
+
+# # Aggiungi la funzione di ricerca della soglia ottimale al tuo codice esistente
+# def failure_case_analysis(scores_list, preds_list, labels_list, method='MSP'):
+#     """
+#     Analizza i casi di errore e riporta i campioni classificati erroneamente.
+    
+#     scores_list: Lista delle confidenze o distanze [SRC, TAR1, TAR2]
+#     preds_list: Lista delle previsioni [SRC, TAR1, TAR2]
+#     labels_list: Lista delle etichette [SRC, TAR1, TAR2]
+#     method: Metodo utilizzato ('MSP' o 'distance')
+#     """
+#     src_conf, src_preds, src_labels = scores_list[0], preds_list[0], labels_list[0]
+#     tar1_conf, tar1_preds, tar1_labels = scores_list[1], preds_list[1], labels_list[1]
+#     tar2_conf, tar2_preds, tar2_labels = scores_list[2], preds_list[2], labels_list[2]
+
+#     # Unire tutte le confidenze, previsioni ed etichette
+#     all_conf = np.concatenate([src_conf, tar1_conf, tar2_conf])
+#     all_preds = np.concatenate([src_preds, tar1_preds, tar2_preds])
+#     all_labels = np.concatenate([src_labels, tar1_labels, tar2_labels])
+
+#     # Trova la soglia ottimale
+#     threshold = find_optimal_threshold(all_conf, all_labels)
+
+#     # Identificare i campioni classificati erroneamente
+#     misclassified_indices = np.where(all_conf < threshold)[0]
+
+#     for idx in misclassified_indices:
+#         conf = all_conf[idx]
+#         pred = all_preds[idx]
+#         label = all_labels[idx]
+
+#         if method == 'MSP':
+#             print(f"Misclassified sample at index {idx}:")
+#             print(f"Confidence: {conf}, Predicted class: {pred}, True class: {label}")
+#             # Plot point cloud (esempio)
+#             plt.scatter(idx, conf, label=f"Pred: {pred}, True: {label}")
+#             plt.legend()
+#             plt.show()
+#         elif method == 'distance':
+#             print(f"Misclassified sample at index {idx}:")
+#             print(f"Distance: {conf}, True class: {label}")
+#             # Trova il campione di addestramento più vicino (esempio)
+#             nearest_training_sample = find_nearest_training_sample(idx)
+#             plt.scatter(idx, conf, label=f"Nearest training sample class: {nearest_training_sample}")
+#             plt.legend()
+#             plt.show()
+
+# def find_nearest_training_sample(idx):
+#     # Funzione di esempio per trovare il campione di addestramento più vicino
+#     # Implementare la logica per trovare il campione di addestramento più vicino
+#     return "class_label"
+# def find_nearest_training_sample(idx):
+#     # Funzione di esempio per trovare il campione di addestramento più vicino
+#     # Implementare la logica per trovare il campione di addestramento più vicino
+#     return "class_label"
+
+# # Esempio di utilizzo
+# scores_list = [np.array([0.9, 0.2, 0.8]), np.array([0.1, 0.4, 0.3]), np.array([0.5, 0.6, 0.7])]
+# preds_list = [np.array([1, 0, 1]), np.array([0, 1, 0]), np.array([1, 0, 1])]
+# labels_list = [np.array([1, 0, 1]), np.array([0, 1, 0]), np.array([1, 0, 1])]
+# threshold = 0.5
+# failure_case_analysis(scores_list, preds_list, labels_list, threshold, method='MSP')
+
 
 
 if __name__ == "__main__":

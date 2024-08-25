@@ -496,8 +496,8 @@ def eval_ood_sncore(
         print(f"AUROC - Src label: {src_label}, Tar label: {tar_label}")
 
     src_conf, src_preds, src_labels = scores_list[0], preds_list[0], labels_list[0]
-    tar1_conf, _, _ = scores_list[1], preds_list[1], labels_list[1]
-    tar2_conf, _, _ = scores_list[2], preds_list[2], labels_list[2]
+    tar1_conf, tar1_preds, tar1_labels = scores_list[1], preds_list[1], labels_list[1]
+    tar2_conf, tar2_preds, tar2_labels= scores_list[2], preds_list[2], labels_list[2]
 
     # compute ID test accuracy
     src_acc, src_bal_acc = -1, -1
