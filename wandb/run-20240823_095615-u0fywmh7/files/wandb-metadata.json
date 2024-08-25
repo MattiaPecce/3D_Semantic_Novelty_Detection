@@ -1,0 +1,58 @@
+{
+    "os": "Windows-11-10.0.22631-SP0",
+    "python": "3.12.3",
+    "heartbeatAt": "2024-08-23T07:56:17.213653",
+    "startedAt": "2024-08-23T07:56:15.056309",
+    "docker": null,
+    "cuda": null,
+    "args": [
+        "--config",
+        "cfgs/pn2-msg.yaml",
+        "--exp_name",
+        "PN2_CE_SR1_wEVAL",
+        "--src",
+        "SR1",
+        "--loss",
+        "CE",
+        "--epochs",
+        "1"
+    ],
+    "state": "running",
+    "program": "C:\\Users\\matti\\Desktop\\AML\\Codice\\nostro\\SemNov_AML_DAAI_23-24-main\\classifiers\\trainer_cla_md.py",
+    "codePathLocal": "classifiers\\trainer_cla_md.py",
+    "codePath": "classifiers\\trainer_cla_md.py",
+    "host": "PCI",
+    "username": "matti",
+    "executable": "C:\\Users\\matti\\Desktop\\virtual_enviroments\\aml\\Scripts\\python.exe",
+    "cpu_count": 14,
+    "cpu_count_logical": 20,
+    "cpu_freq": {
+        "current": 2700.0,
+        "min": 0.0,
+        "max": 2700.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 2700.0,
+            "min": 0.0,
+            "max": 2700.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 453.11230087280273,
+            "used": 370.0150947570801
+        }
+    },
+    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
+            "memory_total": 4294967296
+        }
+    ],
+    "memory": {
+        "total": 7.707798004150391
+    }
+}

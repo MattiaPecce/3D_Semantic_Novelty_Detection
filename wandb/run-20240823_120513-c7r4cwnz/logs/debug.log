@@ -1,0 +1,28 @@
+2024-08-23 12:05:13,707 INFO    MainThread:22356 [wandb_setup.py:_flush():76] Current SDK version is 0.17.7
+2024-08-23 12:05:13,708 INFO    MainThread:22356 [wandb_setup.py:_flush():76] Configure stats pid to 22356
+2024-08-23 12:05:13,708 INFO    MainThread:22356 [wandb_setup.py:_flush():76] Loading settings from C:\Users\matti\.config\wandb\settings
+2024-08-23 12:05:13,708 INFO    MainThread:22356 [wandb_setup.py:_flush():76] Loading settings from C:\Users\matti\Desktop\AML\Codice\nostro\SemNov_AML_DAAI_23-24-main\wandb\settings
+2024-08-23 12:05:13,708 INFO    MainThread:22356 [wandb_setup.py:_flush():76] Loading settings from environment variables: {}
+2024-08-23 12:05:13,708 INFO    MainThread:22356 [wandb_setup.py:_flush():76] Inferring run settings from compute environment: {'program_relpath': 'classifiers\\trainer_cla_md.py', 'program_abspath': 'C:\\Users\\matti\\Desktop\\AML\\Codice\\nostro\\SemNov_AML_DAAI_23-24-main\\classifiers\\trainer_cla_md.py', 'program': 'C:\\Users\\matti\\Desktop\\AML\\Codice\\nostro\\SemNov_AML_DAAI_23-24-main\\classifiers\\trainer_cla_md.py'}
+2024-08-23 12:05:13,708 INFO    MainThread:22356 [wandb_setup.py:_flush():76] Applying login settings: {}
+2024-08-23 12:05:13,709 INFO    MainThread:22356 [wandb_setup.py:_flush():76] Applying login settings: {}
+2024-08-23 12:05:13,709 INFO    MainThread:22356 [wandb_init.py:_log_setup():524] Logging user logs to C:\Users\matti\Desktop\AML\Codice\nostro\SemNov_AML_DAAI_23-24-main\wandb\run-20240823_120513-c7r4cwnz\logs\debug.log
+2024-08-23 12:05:13,710 INFO    MainThread:22356 [wandb_init.py:_log_setup():525] Logging internal logs to C:\Users\matti\Desktop\AML\Codice\nostro\SemNov_AML_DAAI_23-24-main\wandb\run-20240823_120513-c7r4cwnz\logs\debug-internal.log
+2024-08-23 12:05:13,710 INFO    MainThread:22356 [wandb_init.py:init():607] calling init triggers
+2024-08-23 12:05:13,710 INFO    MainThread:22356 [wandb_init.py:init():614] wandb.init called with sweep_config: {}
+config: {'arguments': {'local_rank': None, 'use_sync_bn': False, 'use_amp': False, 'script_mode': 'train', 'config': 'cfgs/pn2-msg.yaml', 'seed': 1, 'epochs': 1, 'batch_size': 64, 'num_workers': 4, 'resume': None, 'apply_fix_cellphone': True, 'data_root': './3D_OS_release_data', 'checkpoints_dir': 'outputs', 'exp_name': 'PN2_CE_SR1_wEVAL', 'eval_step': 1, 'save_step': 10, 'ckpt_path': None, 'src': 'SR1', 'sonn_split': 'main_split', 'sonn_h5_name': 'objectdataset.h5', 'augm_set': 'rw', 'grad_norm_clip': -1, 'num_points': 1024, 'num_points_test': 2048, 'wandb_name': 'PN2_CE_SR1_wEVAL', 'wandb_group': 'md-2-sonn-augmCorr', 'wandb_proj': 'benchmark-3d-ood-cla', 'loss': 'CE', 'cs': False, 'cs_gan_lr': 0.0002, 'cs_beta': 0.1, 'save_feats': None, 'corruption': None, 'tar1': 'none', 'tar2': 'none', 'log_dir': 'outputs\\PN2_CE_SR1_wEVAL', 'tb_dir': 'outputs\\PN2_CE_SR1_wEVAL\\tb-logs', 'models_dir': 'outputs\\PN2_CE_SR1_wEVAL\\models', 'backup_dir': 'outputs\\PN2_CE_SR1_wEVAL\\backup-code'}, 'config': {'optimizer': {'type': 'adam', 'skip_wd': [], 'weight_decay': 0.0001, 'kwargs': {'lr': 0.001}}, 'scheduler': {'type': 'CosLR', 'kwargs': {'t_initial': 250, 'cycle_limit': 1, 'lr_min': 1e-05}}, 'model': {'ENCO_NAME': 'pn2-msg', 'dropout': 0.5, 'cla_input_dim': 1024, 'act': 'relu'}}}
+2024-08-23 12:05:13,710 INFO    MainThread:22356 [wandb_init.py:init():657] starting backend
+2024-08-23 12:05:13,710 INFO    MainThread:22356 [wandb_init.py:init():661] setting up manager
+2024-08-23 12:05:13,713 INFO    MainThread:22356 [backend.py:_multiprocessing_setup():105] multiprocessing start_methods=spawn, using: spawn
+2024-08-23 12:05:13,719 INFO    MainThread:22356 [wandb_init.py:init():669] backend started and connected
+2024-08-23 12:05:13,724 INFO    MainThread:22356 [wandb_init.py:init():764] updated telemetry
+2024-08-23 12:05:13,725 INFO    MainThread:22356 [wandb_init.py:init():797] communicating run to backend with 90.0 second timeout
+2024-08-23 12:05:14,209 INFO    MainThread:22356 [wandb_run.py:_on_init():2479] communicating current version
+2024-08-23 12:05:14,375 INFO    MainThread:22356 [wandb_run.py:_on_init():2488] got version response 
+2024-08-23 12:05:14,376 INFO    MainThread:22356 [wandb_init.py:init():848] starting run threads in backend
+2024-08-23 12:05:16,346 INFO    MainThread:22356 [wandb_run.py:_console_start():2457] atexit reg
+2024-08-23 12:05:16,346 INFO    MainThread:22356 [wandb_run.py:_redirect():2303] redirect: wrap_raw
+2024-08-23 12:05:16,347 INFO    MainThread:22356 [wandb_run.py:_redirect():2368] Wrapping output streams.
+2024-08-23 12:05:16,347 INFO    MainThread:22356 [wandb_run.py:_redirect():2393] Redirects installed.
+2024-08-23 12:05:16,350 INFO    MainThread:22356 [wandb_init.py:init():891] run started, returning control to user process
+2024-08-23 12:05:22,021 WARNING MsgRouterThr:22356 [router.py:message_loop():77] message_loop has been closed

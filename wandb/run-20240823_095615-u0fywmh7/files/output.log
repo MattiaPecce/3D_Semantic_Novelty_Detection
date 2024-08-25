@@ -1,0 +1,34 @@
+
+Train transforms: [<utils.data_utils.PointcloudToTensor object at 0x000002D5F527E150>, <utils.data_utils.RandomSample object at 0x000002D5A1752A50>, <utils.data_utils.AugmScale object at 0x000002D5A1753410>, <utils.data_utils.AugmRotate object at 0x000002D5A17B7290>, <utils.data_utils.AugmRotatePerturbation object at 0x000002D5A05617F0>, <utils.data_utils.AugmTranslate object at 0x000002D5A01131A0>, <utils.data_utils.AugmJitter object at 0x000002D5FFDE81A0>]
+
+
+
+
+
+ModelNet40_OOD loading data from txts:  24%|████████████████████▏                                                               | 572/2378 [00:13<00:41, 43.40it/s]
+Traceback (most recent call last):
+  File "C:\Users\matti\Desktop\AML\Codice\nostro\SemNov_AML_DAAI_23-24-main\classifiers\trainer_cla_md.py", line 734, in <module>
+    main()
+  File "C:\Users\matti\Desktop\AML\Codice\nostro\SemNov_AML_DAAI_23-24-main\classifiers\trainer_cla_md.py", line 725, in main
+    train(args, config)
+  File "C:\Users\matti\Desktop\AML\Codice\nostro\SemNov_AML_DAAI_23-24-main\classifiers\trainer_cla_md.py", line 302, in train
+    train_loader, test_loader = get_md_loaders(opt)
+                                ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\matti\Desktop\AML\Codice\nostro\SemNov_AML_DAAI_23-24-main\classifiers\trainer_cla_md.py", line 157, in get_md_loaders
+    train_data = ModelNet40_OOD(  # sampling performed as dataugm
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\matti\Desktop\AML\Codice\nostro\SemNov_AML_DAAI_23-24-main\datasets\modelnet.py", line 258, in __init__
+    point_set = np.loadtxt(fn[1], delimiter=",").astype(np.float32)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\matti\Desktop\virtual_enviroments\aml\Lib\site-packages\numpy\lib\npyio.py", line 1373, in loadtxt
+    arr = _read(fname, dtype=dtype, comment=comment, delimiter=delimiter,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\matti\Desktop\virtual_enviroments\aml\Lib\site-packages\numpy\lib\npyio.py", line 992, in _read
+    fh = np.lib._datasource.open(fname, 'rt', encoding=encoding)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\matti\Desktop\virtual_enviroments\aml\Lib\site-packages\numpy\lib\_datasource.py", line 193, in open
+    return ds.open(path, mode, encoding=encoding, newline=newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\matti\Desktop\virtual_enviroments\aml\Lib\site-packages\numpy\lib\_datasource.py", line 533, in open
+    raise FileNotFoundError(f"{path} not found.")
+FileNotFoundError: ./3D_OS_release_data\modelnet40_normal_resampled\chair\chair_0001.txt not found.

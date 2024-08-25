@@ -1,0 +1,17 @@
+
+Train transforms: [<utils.data_utils.PointcloudToTensor object at 0x0000026E43004BC0>, <utils.data_utils.RandomSample object at 0x0000026E6CE670E0>, <utils.data_utils.AugmScale object at 0x0000026E6CF37710>, <utils.data_utils.AugmRotate object at 0x0000026E6D0EA5D0>, <utils.data_utils.AugmRotatePerturbation object at 0x0000026E6D07F5F0>, <utils.data_utils.AugmTranslate object at 0x0000026E6D0EBC20>, <utils.data_utils.AugmJitter object at 0x0000026E6D04A960>]
+Traceback (most recent call last):
+  File "C:\Users\matti\Desktop\AML\Codice\nostro\SemNov_AML_DAAI_23-24-main\classifiers\trainer_cla_md.py", line 734, in <module>
+    main()
+  File "C:\Users\matti\Desktop\AML\Codice\nostro\SemNov_AML_DAAI_23-24-main\classifiers\trainer_cla_md.py", line 725, in main
+    train(args, config)
+  File "C:\Users\matti\Desktop\AML\Codice\nostro\SemNov_AML_DAAI_23-24-main\classifiers\trainer_cla_md.py", line 302, in train
+    train_loader, test_loader = get_md_loaders(opt)
+                                ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\matti\Desktop\AML\Codice\nostro\SemNov_AML_DAAI_23-24-main\classifiers\trainer_cla_md.py", line 157, in get_md_loaders
+    train_data = ModelNet40_OOD(  # sampling performed as dataugm
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\matti\Desktop\AML\Codice\nostro\SemNov_AML_DAAI_23-24-main\datasets\modelnet.py", line 230, in __init__
+    for line in open(
+                ^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: './3D_OS_release_data\\modelnet40_normal_resampled\\./3D_OS_release_data\\modelnet40_normal_resampled\\modelnet40_train.txt'

@@ -1,0 +1,38 @@
+Train transforms: [<utils.data_utils.PointcloudToTensor object at 0x000002DAF0820710>, <utils.data_utils.RandomSample object at 0x000002DAF0874A70>, <utils.data_utils.AugmScale object at 0x000002DAF0922BD0>, <utils.data_utils.AugmRotate object at 0x000002DAF0987770>, <utils.data_utils.AugmRotatePerturbation object at 0x000002DAF08409B0>, <utils.data_utils.AugmTranslate object at 0x000002DAC6CC6D20>, <utils.data_utils.AugmJitter object at 0x000002DAEF703860>]
+ModelNet40_OOD - Reading data from h5py file: ./3D_OS_release_data\modelnet40_normal_resampled\ood_sets_cache\SR1_train.h5
+ModelNet40_OOD - split: train, categories: {'chair': 0, 'bookshelf': 1, 'door': 2, 'sink': 3, 'sofa': 4}
+SR1 train_data len: 2378
+ModelNet40_OOD - Reading data from h5py file: ./3D_OS_release_data\modelnet40_normal_resampled\ood_sets_cache\SR1_test.h5
+ModelNet40_OOD - split: test, categories: {'chair': 0, 'bookshelf': 1, 'door': 2, 'sink': 3, 'sofa': 4}
+SR1 train synset: {'chair': 0, 'bookshelf': 1, 'door': 2, 'sink': 3, 'sofa': 4}
+Source: SR1
+Num training classes: 5
+Clf - feature encoder: pn2-msg
+Clf Head - num classes: 5, input dim: 1024, act: relu, dropout: 0.5
+Traceback (most recent call last):
+  File "C:\Users\matti\Desktop\AML\Codice\nostro\SemNov_AML_DAAI_23-24-main\classifiers\trainer_cla_md.py", line 734, in <module>
+    main()
+  File "C:\Users\matti\Desktop\AML\Codice\nostro\SemNov_AML_DAAI_23-24-main\classifiers\trainer_cla_md.py", line 725, in main
+    train(args, config)
+  File "C:\Users\matti\Desktop\AML\Codice\nostro\SemNov_AML_DAAI_23-24-main\classifiers\trainer_cla_md.py", line 320, in train
+    model = model.cuda()
+            ^^^^^^^^^^^^
+  File "C:\Users\matti\Desktop\virtual_enviroments\aml\Lib\site-packages\torch\nn\modules\module.py", line 916, in cuda
+    return self._apply(lambda t: t.cuda(device))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\matti\Desktop\virtual_enviroments\aml\Lib\site-packages\torch\nn\modules\module.py", line 780, in _apply
+    module._apply(fn)
+  File "C:\Users\matti\Desktop\virtual_enviroments\aml\Lib\site-packages\torch\nn\modules\module.py", line 780, in _apply
+    module._apply(fn)
+  File "C:\Users\matti\Desktop\virtual_enviroments\aml\Lib\site-packages\torch\nn\modules\module.py", line 780, in _apply
+    module._apply(fn)
+  [Previous line repeated 2 more times]
+  File "C:\Users\matti\Desktop\virtual_enviroments\aml\Lib\site-packages\torch\nn\modules\module.py", line 805, in _apply
+    param_applied = fn(param)
+                    ^^^^^^^^^
+  File "C:\Users\matti\Desktop\virtual_enviroments\aml\Lib\site-packages\torch\nn\modules\module.py", line 916, in <lambda>
+    return self._apply(lambda t: t.cuda(device))
+                                 ^^^^^^^^^^^^^^
+  File "C:\Users\matti\Desktop\virtual_enviroments\aml\Lib\site-packages\torch\cuda\__init__.py", line 305, in _lazy_init
+    raise AssertionError("Torch not compiled with CUDA enabled")
+AssertionError: Torch not compiled with CUDA enabled

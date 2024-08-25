@@ -1,0 +1,104 @@
+wandb_version: 1
+
+arguments:
+  desc: null
+  value:
+    local_rank: null
+    use_sync_bn: false
+    use_amp: false
+    script_mode: train
+    config: cfgs/pn2-msg.yaml
+    seed: 1
+    epochs: 1
+    batch_size: 64
+    num_workers: 4
+    resume: null
+    apply_fix_cellphone: true
+    data_root: ./3D_OS_release_data
+    checkpoints_dir: outputs
+    exp_name: PN2_CE_SR1_wEVAL
+    eval_step: 1
+    save_step: 10
+    ckpt_path: null
+    src: SR1
+    sonn_split: main_split
+    sonn_h5_name: objectdataset.h5
+    augm_set: rw
+    grad_norm_clip: -1
+    num_points: 1024
+    num_points_test: 2048
+    wandb_name: PN2_CE_SR1_wEVAL
+    wandb_group: md-2-sonn-augmCorr
+    wandb_proj: benchmark-3d-ood-cla
+    loss: CE
+    cs: false
+    cs_gan_lr: 0.0002
+    cs_beta: 0.1
+    save_feats: null
+    corruption: null
+    tar1: none
+    tar2: none
+    log_dir: outputs\PN2_CE_SR1_wEVAL
+    tb_dir: outputs\PN2_CE_SR1_wEVAL\tb-logs
+    models_dir: outputs\PN2_CE_SR1_wEVAL\models
+    backup_dir: outputs\PN2_CE_SR1_wEVAL\backup-code
+config:
+  desc: null
+  value:
+    optimizer:
+      type: adam
+      skip_wd: []
+      weight_decay: 0.0001
+      kwargs:
+        lr: 0.001
+    scheduler:
+      type: CosLR
+      kwargs:
+        t_initial: 250
+        cycle_limit: 1
+        lr_min: 1.0e-05
+    model:
+      ENCO_NAME: pn2-msg
+      dropout: 0.5
+      cla_input_dim: 1024
+      act: relu
+_wandb:
+  desc: null
+  value:
+    python_version: 3.12.3
+    cli_version: 0.17.7
+    framework: torch
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1724409132
+    t:
+      1:
+      - 1
+      - 5
+      - 41
+      - 49
+      - 51
+      - 53
+      - 55
+      - 63
+      2:
+      - 1
+      - 5
+      - 41
+      - 49
+      - 51
+      - 53
+      - 55
+      - 63
+      3:
+      - 13
+      - 16
+      - 23
+      4: 3.12.3
+      5: 0.17.7
+      6: ''
+      8:
+      - 3
+      - 5
+      12: ''
+      13: windows-amd64
