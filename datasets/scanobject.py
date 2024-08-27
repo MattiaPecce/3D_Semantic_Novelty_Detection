@@ -46,17 +46,17 @@ sonn_2_mdSet2 = {
     14: 1,  # toilet
     5: 2,  # desk
     6: 3,  # display
-    9: 2  # table
+    9: 4  # table
 }
 
 # common ood set
 # these are categories with poor mapping between md and sonn
 sonn_ood_common = {
-    0: 404,  # bag
-    1: 404,  # bin
-    2: 404,  # box
-    3: 404,  # cabinet
-    11: 404  # pillow
+    0: 0,  # bag
+    1: 1,  # bin
+    2: 2,  # box
+    3: 3,  # cabinet
+    11: 4  # pillow
 }
 
 

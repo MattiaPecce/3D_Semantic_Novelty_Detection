@@ -679,10 +679,7 @@ def eval_ood_md2sonn(opt, config):
     classes_dict = eval(opt.src)
     n_classes = len(set(classes_dict.values()))
     model = Classifier(
-        args=DotConfig(config["model"]),
-        num_classes=n_classes, 
-        loss=opt.loss, 
-        cs=opt.cs
+        args=DotConfig(config["model"]), num_classes=n_classes, loss=opt.loss, cs=opt.cs
     )
     ckt_weights = torch.load(opt.ckpt_path, map_location="cpu")["model"]
     ckt_weights = sanitize_model_dict(ckt_weights)
@@ -759,6 +756,48 @@ def eval_ood_md2sonn(opt, config):
         save_feats=opt.save_feats,
     )
 
+    # ODIN
+    print("\n" + "#" * 80)
+    print("Computing OOD metrics with ODIN normality score...")
+    src_odin = iterate_data_odin(model, id_loader)
+    tar1_odin = iterate_data_odin(model, ood1_loader)
+    tar2_odin = iterate_data_odin(model, ood2_loader)
+    eval_ood_sncore(scores_list=[src_odin, tar1_odin, tar2_odin], src_label=1)
+    print("#" * 80)
+
+    # Energy
+    print("\n" + "#" * 80)
+    print("Computing OOD metrics with Energy normality score...")
+    src_energy = iterate_data_energy(model, id_loader)
+    tar1_energy = iterate_data_energy(model, ood1_loader)
+    tar2_energy = iterate_data_energy(model, ood2_loader)
+    eval_ood_sncore(scores_list=[src_energy, tar1_energy, tar2_energy], src_label=1)
+    print("#" * 80)
+
+    # GradNorm
+    print("\n" + "#" * 80)
+    print("Computing OOD metrics with GradNorm normality score...")
+    src_gradnorm = iterate_data_gradnorm(model, id_loader)
+    tar1_gradnorm = iterate_data_gradnorm(model, ood1_loader)
+    tar2_gradnorm = iterate_data_gradnorm(model, ood2_loader)
+    eval_ood_sncore(
+        scores_list=[src_gradnorm, tar1_gradnorm, tar2_gradnorm], src_label=1
+    )
+    print("#" * 80)
+
+    # React with id-dependent threshold
+    print("\n" + "#" * 80)
+    val_loader = get_md_react_val_loader(opt)
+    threshold = estimate_react_thres(model, val_loader)
+    print(
+        f"Computing OOD metrics with React (+Energy) normality score, ID-dependent threshold (={threshold:.4f})..."
+    )
+    print(f"React - using {opt.src} test to compute threshold")
+    src_react = iterate_data_react(model, id_loader, threshold=threshold)
+    tar1_react = iterate_data_react(model, ood1_loader, threshold=threshold)
+    tar2_react = iterate_data_react(model, ood2_loader, threshold=threshold)
+    eval_ood_sncore(scores_list=[src_react, tar1_react, tar2_react], src_label=1)
+    print("#" * 80)
     return
 
 
