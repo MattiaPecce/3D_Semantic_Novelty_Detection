@@ -1,6 +1,7 @@
 from models.common import *
 from models import *
 from models.pointnet2.model_yanx27 import *
+from models import openshape
 
 
 
@@ -33,6 +34,8 @@ def get_feature_encoder(args):
         raise NotImplementedError
         base_enco = get_pn2_msg_encoder(input_channels=0, use_xyz=True)
         return convert_pn2_abn(base_enco)
+    elif args.ENCO_NAME.lower() == 'pointbertg14':
+        return openshape.PointBertG14()
     else:
         raise ValueError("Unknown encoder")
 
