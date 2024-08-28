@@ -244,7 +244,23 @@ def eval_ood_md2sonn(opt, config):
     #ckt_weights = sanitize_model_dict(ckt_weights)
     #ckt_weights = convert_model_state(ckt_weights, model.state_dict())
     ckt = torch.load(opt.ckpt_path, map_location = 'cpu')
-    model.load_state_dict(module(ckt["state_dict"], "module"))
+    model_state_dict = model.state_dict()
+
+    print("DICT KEYS CHECKPOINT")
+    print(ckt["state_dict"].keys())
+
+    print("DICT KEYS ATTESE DAL MODELLO")
+    print(model_state_dict.keys())
+
+    new_state_dict = {}
+    for key, value in ckt["state_dict"].items():
+        new_key = key.replace('module.', 'enco.')
+        new_state_dict[new_key] = value
+        
+    print("DICT KEYS CHECKPOINT MODIFICATE")
+    print(new_state_dict.keys())
+
+    model.load_state_dict(new_state_dict)
     print(f"Model params count: {count_parameters(model) / 1000000 :.4f} M")
     #print("Load weights: ", model.load_state_dict(ckt_weights, strict=True))
     model = model.cuda().eval()
