@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from time import time
 import numpy as np
-import dgl.geometry
+#import dgl.geometry
 
 def timeit(tag, t):
     print("{}: {}s".format(tag, time() - t))
@@ -69,7 +69,7 @@ def farthest_point_sample(xyz, npoint):
     Return:
         centroids: sampled pointcloud index, [B, npoint]
     """
-    return dgl.geometry.farthest_point_sampler(xyz, npoint)
+   # return dgl.geometry.farthest_point_sampler(xyz, npoint)
     device = xyz.device
     B, N, C = xyz.shape
     centroids = torch.zeros(B, npoint, dtype=torch.long).to(device)
