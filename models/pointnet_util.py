@@ -20,13 +20,11 @@ def pc_normalize(pc):
 def square_distance(src, dst):
     """
     Calculate Euclid distance between each two points.
-
     src^T * dst = xn * xm + yn * ym + zn * zm；
     sum(src^2, dim=-1) = xn*xn + yn*yn + zn*zn;
     sum(dst^2, dim=-1) = xm*xm + ym*ym + zm*zm;
     dist = (xn - xm)^2 + (yn - ym)^2 + (zn - zm)^2
          = sum(src**2,dim=-1)+sum(dst**2,dim=-1)-2*src^T*dst
-
     Input:
         src: source points, [B, N, C]
         dst: target points, [B, M, C]
@@ -43,7 +41,6 @@ def square_distance(src, dst):
 
 def index_points(points, idx):
     """
-
     Input:
         points: input points data, [B, N, C]
         idx: sample index data, [B, S]
@@ -69,7 +66,7 @@ def farthest_point_sample(xyz, npoint):
     Return:
         centroids: sampled pointcloud index, [B, npoint]
     """
-   # return dgl.geometry.farthest_point_sampler(xyz, npoint)
+    #return dgl.geometry.farthest_point_sampler(xyz, npoint)
     device = xyz.device
     B, N, C = xyz.shape
     centroids = torch.zeros(B, npoint, dtype=torch.long).to(device)
@@ -320,4 +317,3 @@ class PointNetFeaturePropagation(nn.Module):
             bn = self.mlp_bns[i]
             new_points = F.relu(bn(conv(new_points)))
         return new_points
-

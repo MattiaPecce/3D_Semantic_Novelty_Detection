@@ -27,6 +27,7 @@ from sklearn.metrics import accuracy_score, balanced_accuracy_score
 from models.common import convert_model_state, logits_entropy_loss
 from models.ARPL_utils import Generator, Discriminator
 from classifiers.common import train_epoch_cla, train_epoch_rsmix_exposure, train_epoch_cs
+from models.openshape import PointBertG14
 
 
 def get_args():
@@ -237,8 +238,8 @@ def eval_ood_md2sonn(opt, config):
     classes_dict = eval(opt.src)
     n_classes = len(set(classes_dict.values()))
 
-    
-    model = Classifier(args=DotConfig(config['model']), num_classes=n_classes, loss=opt.loss, cs=opt.cs)
+    model = PointBertG14()
+    #model = Classifier(args=DotConfig(config['model']), num_classes=n_classes, loss=opt.loss, cs=opt.cs)
     #args.enco_name will contain the name of the chosen model, passed through .yaml file in the command line 
     #ckt_weights = torch.load(opt.ckpt_path, map_location='cpu')['model']
     #ckt_weights = sanitize_model_dict(ckt_weights)
@@ -254,13 +255,14 @@ def eval_ood_md2sonn(opt, config):
 
     new_state_dict = {}
     for key, value in ckt["state_dict"].items():
-        new_key = key.replace('module.', 'enco.')
+        #new_key = key.replace('module.', 'enco.')
+        new_key = key.replace('module.', '')
         new_state_dict[new_key] = value
         
     print("DICT KEYS CHECKPOINT MODIFICATE")
     print(new_state_dict.keys())
 
-    model.load_state_dict(new_state_dict)
+    model.load_state_dict(new_state_dict, False)
     print(f"Model params count: {count_parameters(model) / 1000000 :.4f} M")
     #print("Load weights: ", model.load_state_dict(ckt_weights, strict=True))
     model = model.cuda().eval()

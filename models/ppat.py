@@ -90,12 +90,13 @@ class PointPatchTransformer(nn.Module):
         self.cls_token = nn.Parameter(torch.randn(dim))
         self.transformer = Transformer(dim, depth, heads, dim_head, mlp_dim, 0.0, rel_pe)
 
-    def forward(self, xyz: torch.Tensor, features):
+    def forward(self, features):
         self.sa.npoint = self.patches
         if self.training:
             self.sa.npoint -= self.patch_dropout
-        centroids, feature = self.sa(xyz, features)
-
+        # print("input", features.shape)
+        centroids, feature = self.sa(features[:, :3], features)
+        # print("f", feature.shape, 'c', centroids.shape)
         x = self.lift(torch.cat([centroids, feature], dim=1))
 
         x = rst.supercat([self.cls_token, x], dim=-2)
@@ -113,42 +114,5 @@ class Projected(nn.Module):
         self.ppat = ppat
         self.proj = proj
 
-    def forward(self, xyz: torch.Tensor, features: torch.Tensor, device=None, quantization_size=0.05):
-        return self.proj(self.ppat(
-            xyz.transpose(-1, -2).contiguous(), features.transpose(-1, -2).contiguous()
-        ))
-
-
-def make(cfg):
-    scaling = cfg.model.scaling
-    if scaling == 1:
-        return Projected(
-            PointPatchTransformer(256, 6, 4, 1024, 96, 64, 0.4, 256, cfg.model.in_channel),
-            nn.Linear(256, cfg.model.out_channel)
-        )
-    if scaling == 2:
-        return Projected(
-            PointPatchTransformer(512, 6, 8, 1024, 128, 64, 0.4, 256, cfg.model.in_channel),
-            nn.Linear(512, cfg.model.out_channel)
-        )
-    if scaling == 3:
-        return Projected(
-            PointPatchTransformer(512, 12, 8, 1024, 128, 128, 0.35, 128, cfg.model.in_channel),
-            nn.Linear(512, cfg.model.out_channel)
-        )
-    if scaling == 4:
-        return Projected(
-            PointPatchTransformer(512, 12, 8, 512*3, 256, 384, 0.2, 64, cfg.model.in_channel),
-            nn.Linear(512, cfg.model.out_channel)
-        )
-    if scaling == 5:
-        return Projected(
-            PointPatchTransformer(768, 12, 12, 768*3, 256, 512, 0.2, 64, cfg.model.in_channel),
-            nn.Linear(768, cfg.model.out_channel)
-        )
-    if scaling == 6:
-        return Projected(
-            PointPatchTransformer(768, 24, 12, 768*4, 256, 512, 0.2, 64, cfg.model.in_channel),
-            nn.Linear(768, cfg.model.out_channel)
-        )
-    raise ValueError(scaling)
+    def forward(self, features: torch.Tensor):
+        return self.proj(self.ppat(features))
