@@ -2,6 +2,7 @@ import sys
 import os
 import warnings
 import numpy as np
+import pandas as pd
 
 sys.path.append(os.getcwd())
 import os.path as osp
@@ -33,7 +34,13 @@ from utils.ood_utils import (
 )
 import wandb
 from base_args import add_base_args
-from sklearn.metrics import accuracy_score, balanced_accuracy_score
+from sklearn.metrics import (
+    accuracy_score,
+    balanced_accuracy_scoreroc_curve,
+    precision_recall_curve,
+    accuracy_score,
+    confusion_matrix,
+)
 from models.common import convert_model_state, logits_entropy_loss
 from models.ARPL_utils import Generator, Discriminator
 from classifiers.common import (
@@ -626,38 +633,6 @@ def train(opt, config):
             f"Training finished - best test acc: {best_acc:.4f} at ep.: {best_epoch}, time: {train_time}"
         )
 
-def log_misclassified_samples(log_file, src_MSP_scores, tar1_MSP_scores, tar2_MSP_scores, 
-                              src_pred, tar1_pred, tar2_pred, 
-                              src_labels, tar1_labels, tar2_labels, 
-                              threshold=0.99):
-    """
-    Logs samples with a confidence (MSP score) above the given threshold that are misclassified.
-    """
-    with open(log_file, 'w') as f:
-        f.write("Misclassified Samples with MSP score > {:.2f}\n".format(threshold))
-        f.write("="*60 + "\n")
-        
-        # Function to log a specific sample
-        def log_sample(dataset_name, index, confidence, pred, label):
-            f.write(f"{dataset_name} - Sample {index}: Conf: {confidence:.4f}, Pred: {pred}, Label: {label}\n")
-        
-        # Check SRC samples
-        for i, (score, pred, label) in enumerate(zip(src_MSP_scores, src_pred, src_labels)):
-            if score > threshold and pred != label:
-                log_sample("SRC", i, score, pred.item(), label.item())
-        
-        # Check TAR1 samples
-        for i, (score, pred, label) in enumerate(zip(tar1_MSP_scores, tar1_pred, tar1_labels)):
-            if score > threshold and pred != label:
-                log_sample("TAR1", i, score, pred.item(), label.item())
-        
-        # Check TAR2 samples
-        for i, (score, pred, label) in enumerate(zip(tar2_MSP_scores, tar2_pred, tar2_labels)):
-            if score > threshold and pred != label:
-                log_sample("TAR2", i, score, pred.item(), label.item())
-                
-    print(f"Misclassified samples log saved to {log_file}")
-
 
 def eval_ood_md2sonn(opt, config):
     print(f"Arguments: {opt}")
@@ -711,10 +686,7 @@ def eval_ood_md2sonn(opt, config):
     classes_dict = eval(opt.src)
     n_classes = len(set(classes_dict.values()))
     model = Classifier(
-        args=DotConfig(config["model"]),
-        num_classes=n_classes, 
-        loss=opt.loss, 
-        cs=opt.cs
+        args=DotConfig(config["model"]), num_classes=n_classes, loss=opt.loss, cs=opt.cs
     )
     ckt_weights = torch.load(opt.ckpt_path, map_location="cpu")["model"]
     ckt_weights = sanitize_model_dict(ckt_weights)
@@ -726,16 +698,6 @@ def eval_ood_md2sonn(opt, config):
     src_logits, src_pred, src_labels = get_network_output(model, id_loader)
     tar1_logits, tar1_pred, tar1_labels = get_network_output(model, ood1_loader)
     tar2_logits, tar2_pred, tar2_labels = get_network_output(model, ood2_loader)
-    print(
-        f"Src logits: {src_logits.shape}, tar1 logits: {tar1_logits.shape}, tar2 logits: {tar2_logits.shape}"
-    )
-    print(
-        f"Src pred: {src_pred.shape}, tar1 pred: {tar1_pred.shape}, tar2 pred: {tar2_pred.shape}"
-    )
-    print(
-        f"Src labels: {src_labels.shape}, tar1 labels: {tar1_labels.shape}, tar2 labels: {tar2_labels.shape}"
-    )
-
 
     if opt.src == "SR1":
         src_label_names = ["chair", "shelf", "door", "sink", "sofa"]
@@ -748,85 +710,47 @@ def eval_ood_md2sonn(opt, config):
         raise ValueError(f"Unknown src")
 
     tar2_label_names = ["bag", "bin", "box", "cabinet", "pillow"]
-    
+
     print(f"Src: {src_label_names}")
     print(f"Tar1: {tar1_label_names}")
     print(f"Tar2: {tar2_label_names}")
+
     # MSP
     print("\n" + "#" * 80)
     print("Computing OOD metrics with MSP normality score...")
     src_MSP_scores = F.softmax(src_logits, dim=1).max(1)[0]
     tar1_MSP_scores = F.softmax(tar1_logits, dim=1).max(1)[0]
     tar2_MSP_scores = F.softmax(tar2_logits, dim=1).max(1)[0]
-    # eval_ood_sncore(
-    #     scores_list=[src_MSP_scores, tar1_MSP_scores, tar2_MSP_scores],
-    #     preds_list=[src_pred, tar1_pred, tar2_pred],  # computes also MSP accuracy on ID test set
-    #     labels_list=[
-    #         src_labels,
-    #         tar1_labels,
-    #         tar2_labels,
-    #     ],  # computes also MSP accuracy on ID test set
-    #     src_label=1,
-    # )
-    log_file = "MSP_results.txt"
-    log_samples(log_file, 
-                src_MSP_scores, 
-                tar1_MSP_scores, 
-                tar2_MSP_scores,
-                src_pred,
-                tar1_pred,
-                tar2_pred,
-                src_labels,
-                tar1_labels,
-                tar2_labels,
-                src_label_names,
-                tar1_label_names,
-                tar2_label_names)
-                
 
+    analyze_misclassification(
+        src_MSP_scores,
+        tar1_MSP_scores,
+        tar2_MSP_scores,
+        src_pred,
+        tar1_pred,
+        tar2_pred,
+        src_labels,
+        tar1_labels,
+        tar2_labels,
+        src_label_names,
+        tar1_label_names,
+        tar2_label_names,
+    )
 
-
-    # MLS
-    print("\n" + "#" * 80)
-    print("Computing OOD metrics with MLS normality score...")
-    src_MLS_scores = src_logits.max(1)[0]
-    tar1_MLS_scores = tar1_logits.max(1)[0]
-    tar2_MLS_scores = tar2_logits.max(1)[0]
-
-    log_file = "MLS_results.txt"
-    log_samples(log_file, 
-                src_MLS_scores, 
-                tar1_MLS_scores, 
-                tar2_MLS_scores,
-                src_pred,
-                tar1_pred,
-                tar2_pred,
-                src_labels,
-                tar1_labels,
-                tar2_labels,
-                src_label_names,
-                tar1_label_names,
-                tar2_label_names)
-
-    # eval_ood_sncore(
-    #         scores_list=[src_MLS_scores, tar1_MLS_scores, tar2_MLS_scores],
-    #         preds_list=[
-    #             src_pred,
-    #             tar1_pred,
-    #             tar2_pred,
-    #         ],  # computes also MSP accuracy on ID test set
-    #         labels_list=[
-    #             src_labels,
-    #             tar1_labels,
-    #             tar2_labels,
-    #         ],  # computes also MSP accuracy on ID test set
-    #         label_names_list=[src_label_names, tar1_label_names, tar2_label_names],
-    #         src_label=1,
-    #     )
-    print("#" * 80)
-    
-
-    
+    eval_ood_sncore(
+        scores_list=[src_MSP_scores, tar1_MSP_scores, tar2_MSP_scores],
+        preds_list=[
+            src_pred,
+            tar1_pred,
+            tar2_pred,
+        ],  # computes also MSP accuracy on ID test set
+        labels_list=[
+            src_labels,
+            tar1_labels,
+            tar2_labels,
+        ],  # computes also MSP accuracy on ID test set
+        src_label=1,
+    )
 
     # FEATURES EVALUATION
     eval_OOD_with_feats(
@@ -845,15 +769,15 @@ def eval_ood_md2sonn(opt, config):
 
 
 def eval_OOD_with_feats(
-    model, 
-    train_loader, 
-    src_loader, 
+    model,
+    train_loader,
+    src_loader,
     tar1_loader,
     tar2_loader,
     src_label_names,
     tar1_label_names,
-    tar2_label_names, 
-    save_feats=None
+    tar2_label_names,
+    save_feats=None,
 ):
     from knn_cuda import KNN
 
@@ -935,170 +859,28 @@ def eval_OOD_with_feats(
     tar2_pred = np.asarray(
         [train_labels[i] for i in tar2_ids]
     )  # pred is label of nearest training sample
-    
-    log_file = "Euclidean_nns_results.txt"
-    log_samples(log_file, 
-                src_scores, 
-                tar1_scores, 
-                tar2_scores,
-                src_pred,
-                tar1_pred,
-                tar2_pred,
-                src_labels,
-                tar1_labels,
-                tar2_labels,
-                src_label_names,
-                tar1_label_names,
-                tar2_label_names)
 
+    analyze_misclassification(
+        src_scores,
+        tar1_scores,
+        tar2_scores,
+        src_pred,
+        tar1_pred,
+        tar2_pred,
+        src_labels,
+        tar1_labels,
+        tar2_labels,
+        src_label_names,
+        tar1_label_names,
+        tar2_label_names,
+    )
 
-    # eval_ood_sncore(
-    #     scores_list=[src_scores, tar1_scores, tar2_scores],
-    #     preds_list=[src_pred, tar1_pred, tar2_pred], 
-    #     labels_list=[src_labels, tar1_labels, tar2_labels], 
-    #     src_label=1,  # confidence should be higher for ID samples
-    # )
-
-    print("\nEuclidean distances with prototypes:")
-    # eucl distance in a non-normalized space
-    src_dist, src_ids = knn(prototypes.unsqueeze(0), src_feats.unsqueeze(0))
-    src_dist = src_dist.squeeze().cpu()
-    src_ids = src_ids.squeeze().cpu()  # index of nearest training sample
-    src_scores = 1 / src_dist
-    src_pred = np.asarray(
-        [train_labels[i] for i in src_ids]
-    )  # pred is label of nearest training sample
-
-    # OOD tar1
-    tar1_dist, tar1_ids = knn(prototypes.unsqueeze(0), tar1_feats.unsqueeze(0))
-    tar1_dist = tar1_dist.squeeze().cpu()
-    tar1_ids = tar1_ids.squeeze().cpu()  # index of nearest training sample
-    tar1_scores = 1 / tar1_dist
-    tar1_pred = np.asarray(
-        [train_labels[i] for i in tar1_ids]
-    )  # pred is label of nearest training sample
-
-    # OOD tar2
-    tar2_dist, tar2_ids = knn(prototypes.unsqueeze(0), tar2_feats.unsqueeze(0))
-    tar2_dist = tar2_dist.squeeze().cpu()
-    tar2_ids = tar2_ids.squeeze().cpu()  # index of nearest training sample
-    tar2_scores = 1 / tar2_dist
-    tar2_pred = np.asarray(
-        [train_labels[i] for i in tar2_ids]
-    )  # pred is label of nearest training sample
-
-    log_file = "Euclidean_p_results.txt"
-    log_samples(log_file, 
-                src_scores, 
-                tar1_scores, 
-                tar2_scores,
-                src_pred,
-                tar1_pred,
-                tar2_pred,
-                src_labels,
-                tar1_labels,
-                tar2_labels,
-                src_label_names,
-                tar1_label_names,
-                tar2_label_names)
-
-    # eval_ood_sncore(
-    #     scores_list=[src_scores, tar1_scores, tar2_scores],
-    #     preds_list=[src_pred, tar1_pred, tar2_pred],
-    #     labels_list=[src_labels, tar1_labels, tar2_labels],
-    #     src_label=1,  # confidence should be higher for ID samples
-    # )
-
-    ################################################
-    print("\nCosine similarities on the hypersphere:")
-    # cosine sim in a normalized space
-    train_feats = F.normalize(train_feats, p=2, dim=1)
-    src_feats = F.normalize(src_feats, p=2, dim=1)
-    tar1_feats = F.normalize(tar1_feats, p=2, dim=1)
-    tar2_feats = F.normalize(tar2_feats, p=2, dim=1)
-    src_scores, src_ids = torch.mm(src_feats, train_feats.t()).max(1)
-    tar1_scores, tar1_ids = torch.mm(tar1_feats, train_feats.t()).max(1)
-    tar2_scores, tar2_ids = torch.mm(tar2_feats, train_feats.t()).max(1)
-    src_pred = np.asarray(
-        [train_labels[i] for i in src_ids]
-    )  # pred is label of nearest training sample
-    tar1_pred = np.asarray(
-        [train_labels[i] for i in tar1_ids]
-    )  # pred is label of nearest training sample
-    tar2_pred = np.asarray(
-        [train_labels[i] for i in tar2_ids]
-    )  # pred is label of nearest training sample
-
-    log_file = "Cosine_results.txt"
-    log_samples(log_file, 
-               (0.5 * src_scores + 0.5).cpu(),
-               (0.5 * tar1_scores + 0.5).cpu(),
-               (0.5 * tar2_scores + 0.5).cpu(),
-                src_pred,
-                tar1_pred,
-                tar2_pred,
-                src_labels,
-                tar1_labels,
-                tar2_labels,
-                src_label_names,
-                tar1_label_names,
-                tar2_label_names)
-
-    # eval_ood_sncore(
-    #     scores_list=[
-    #         (0.5 * src_scores + 0.5).cpu(),
-    #         (0.5 * tar1_scores + 0.5).cpu(),
-    #         (0.5 * tar2_scores + 0.5).cpu(),
-    #     ],
-    #     preds_list=[src_pred, tar1_pred, tar2_pred],
-    #     labels_list=[src_labels, tar1_labels, tar2_labels],
-    #     src_label=1,  # confidence should be higher for ID samples
-    # )
-    print("\nCosine similarities with prototypes:")
-    # cosine sim in a normalized space
-    prototypes = F.normalize(prototypes, p=2, dim=1)
-    src_feats = F.normalize(src_feats, p=2, dim=1)
-    tar1_feats = F.normalize(tar1_feats, p=2, dim=1)
-    tar2_feats = F.normalize(tar2_feats, p=2, dim=1)
-    src_scores, src_ids = torch.mm(src_feats, prototypes.t()).max(1)
-    tar1_scores, tar1_ids = torch.mm(tar1_feats, prototypes.t()).max(1)
-    tar2_scores, tar2_ids = torch.mm(tar2_feats, prototypes.t()).max(1)
-    src_pred = np.asarray(
-        [train_labels[i] for i in src_ids]
-    )  # pred is label of nearest training sample
-    tar1_pred = np.asarray(
-        [train_labels[i] for i in tar1_ids]
-    )  # pred is label of nearest training sample
-    tar2_pred = np.asarray(
-        [train_labels[i] for i in tar2_ids]
-    )  # pred is label of nearest training sample
-
-    log_file = "Cosine_p_results.txt"
-    log_samples(log_file, 
-               (0.5 * src_scores + 0.5).cpu(),
-               (0.5 * tar1_scores + 0.5).cpu(),
-               (0.5 * tar2_scores + 0.5).cpu(),
-                src_pred,
-                tar1_pred,
-                tar2_pred,
-                src_labels,
-                tar1_labels,
-                tar2_labels,
-                src_label_names,
-                tar1_label_names,
-                tar2_label_names)
-
-    # eval_ood_sncore(
-    #     scores_list=[
-    #         (0.5 * src_scores + 0.5).cpu(),
-    #         (0.5 * tar1_scores + 0.5).cpu(),
-    #         (0.5 * tar2_scores + 0.5).cpu(),
-    #     ],
-    #     preds_list=[src_pred, tar1_pred, tar2_pred],
-    #     labels_list=[src_labels, tar1_labels, tar2_labels],
-    #     src_label=1,  # confidence should be higher for ID samples
-    # )
-    print("#" * 80)
+    eval_ood_sncore(
+        scores_list=[src_scores, tar1_scores, tar2_scores],
+        preds_list=[src_pred, tar1_pred, tar2_pred],
+        labels_list=[src_labels, tar1_labels, tar2_labels],
+        src_label=1,  # confidence should be higher for ID samples
+    )
 
 
 def main():
@@ -1121,31 +903,164 @@ def main():
         print("out-of-distribution eval - Modelnet -> SONN ..")
         eval_ood_md2sonn(args, config)
 
-def log_samples(log_file, src_scores, tar1_scores, tar2_scores, 
-                src_pred, tar1_pred, tar2_pred, 
-                src_labels, tar1_labels, tar2_labels,
-                src_label_names, tar1_label_names, tar2_label_names):
-    """
-    Logs the score, prediction, and label for each sample in the SRC, TAR1, and TAR2 datasets.
-    """
-    with open(log_file, 'w') as f:
-        f.write("Logged Samples\n")
-        f.write("="*60 + "\n")
-        
-        def log_sample(dataset_name, index, confidence, pred,src_label_names, label ,tar_label_names):
-            f.write(f"{dataset_name} - Sample {index}: Conf: {confidence:.4f}, Pred: {pred}, {src_label_names} , Label: {label}\n {tar_label_names}\n")
-        
-        for i, (score, pred, label) in enumerate(zip(src_scores, src_pred, src_labels)):
-            log_sample("SRC", i, score, pred.item(),src_label_names[pred.item()], label.item(), src_label_names[label.item()])
-        
-        for i, (score, pred, label) in enumerate(zip(tar1_scores, tar1_pred, tar1_labels)):
-            log_sample("TAR1", i, score, pred.item(),src_label_names[pred.item()], label.item(), tar1_label_names[label.item()])
-        
-        for i, (score, pred, label) in enumerate(zip(tar2_scores, tar2_pred, tar2_labels)):
-            log_sample("TAR2", i, score, pred.item(), src_label_names[pred.item()],label.item(),tar2_label_names[label.item()])
-                
-    print(f"Samples log saved to {log_file}")
 
+def create_misclassification_table(
+    scores_list, preds_list, labels_list, labels_names_list, threshold, output_file
+):
+    """
+    Creates a table where rows represent predicted labels from SRC names and columns represent true labels.
+    Special handling is done to merge 'table' and 'desk' as a single class 'table+desk'.
+    A special column 'OOD' is added, which is the sum of all TAR2 misclassifications.
+    The cells contain the count of misclassified samples where the confidence score exceeds the threshold.
+    Saves the resulting table to an Excel file.
+    """
+    src_label_names, tar1_label_names, tar2_label_names = labels_names_list
+
+    # Funzione di mappatura per gestire 'table' e 'desk'
+    def map_label(label):
+        if label == "table" or label == "desk":
+            return "table+desk"
+        return label
+
+    # Aggiornare i nomi delle etichette in base alla mappatura
+    src_label_names = [map_label(name) for name in src_label_names]
+    tar1_label_names = [map_label(name) for name in tar1_label_names]
+    tar2_label_names = [map_label(name) for name in tar2_label_names]
+
+    # Le righe devono rappresentare le predizioni, tutte basate su src_label_names
+    pred_labels = ["SRC_" + name for name in set(src_label_names)]
+
+    # Le colonne rappresentano le etichette reali da tutte le sorgenti
+    true_labels = (
+        ["SRC_" + name for name in set(src_label_names)]
+        + ["TAR1_" + name for name in set(tar1_label_names)]
+        + ["OOD"]
+        + ["TAR2_" + name for name in set(tar2_label_names)]
+    )
+
+    # Inizializzare un DataFrame con 0 in tutte le celle
+    df = pd.DataFrame(0, index=pred_labels, columns=true_labels)
+
+    # Riempire il DataFrame con conteggi di campioni misclassificati
+    for scores, preds, labels, label_names, prefix in zip(
+        scores_list,
+        preds_list,
+        labels_list,
+        labels_names_list,
+        ["SRC_", "TAR1_", "TAR2_"],
+    ):
+
+        for score, pred, label in zip(scores, preds, labels):
+            if score >= threshold:
+                pred_label_name = "SRC_" + map_label(
+                    src_label_names[pred]
+                )  # Usare solo le etichette di src per le predizioni
+                true_label_name = prefix + map_label(
+                    label_names[label]
+                )  # La vera etichetta può provenire da qualsiasi sorgente
+
+                if (
+                    pred_label_name != true_label_name
+                ):  # Incrementa solo se è una misclassificazione
+                    # Incrementare il conteggio nella cella corrispondente
+                    df.at[pred_label_name, true_label_name] += 1
+
+    # Calcolare la somma di tutte le colonne TAR2 e inserirla nella colonna OOD
+    df["OOD"] = df.filter(like="TAR2_").sum(axis=1)
+
+    # Spostare la colonna 'OOD' prima delle colonne TAR2
+    cols = df.columns.tolist()
+    ood_index = cols.index("OOD")
+    tar2_start_index = cols.index("TAR2_" + tar2_label_names[0])
+    cols.insert(tar2_start_index, cols.pop(ood_index))
+    df = df[cols]
+
+    # Salvare il DataFrame in un file Excel
+    df.to_excel(output_file)
+
+    print(f"Misclassification table saved to {output_file}")
+
+
+def evaluate_threshold(scores, labels, threshold):
+    # Predicted labels based on the threshold
+    predicted_labels = scores >= threshold
+    # Calculate accuracy
+    accuracy = accuracy_score(labels, predicted_labels)
+    # Calculate confusion matrix
+    tn, fp, fn, tp = confusion_matrix(labels, predicted_labels).ravel()
+    id_misclassified = fn  # ID samples erroneously classified as OOD
+    ood_misclassified = fp  # OOD samples erroneously classified as ID
+    return accuracy, id_misclassified, ood_misclassified
+
+
+def find_best_threshold(scores, labels):
+
+    # Precision-Recall Curve and F1 Score
+    precision, recall, thresholds_pr = precision_recall_curve(labels, scores)
+    f1_scores = 2 * (precision * recall) / (precision + recall)
+    optimal_threshold_pr = thresholds_pr[np.argmax(f1_scores)]
+
+    # Evaluate metrics for each threshold
+    pr_metrics = evaluate_threshold(scores, labels, optimal_threshold_pr)
+
+    return (
+        optimal_threshold_pr,
+        pr_metrics,
+    )
+
+
+def analyze_misclassification(
+    src_scores,
+    tar1_scores,
+    tar2_scores,
+    src_pred,
+    tar1_pred,
+    tar2_pred,
+    src_labels,
+    tar1_labels,
+    tar2_labels,
+    src_label_names,
+    tar1_label_names,
+    tar2_label_names,
+):
+
+    print("Best Thresholds ")
+
+    # Create labels (1 for ID, 0 for OOD)
+    scores = np.concatenate([src_scores, tar1_scores, tar2_scores])
+    labels = np.concatenate(
+        [
+            np.ones(len(src_scores)),  # ID
+            np.zeros(len(tar1_scores) + len(tar2_scores)),  # OOD
+        ]
+    )
+
+    # Find the best threshold and evaluate metrics
+    optimal_threshold_pr, pr_metrics = find_best_threshold(scores, labels)
+    df_misclassifications = create_misclassification_table(
+        scores_list=[src_scores, tar1_scores, tar2_scores],
+        preds_list=[src_pred, tar1_pred, tar2_pred],
+        labels_list=[
+            src_labels,
+            tar1_labels,
+            tar2_labels,
+        ],
+        labels_names_list=[
+            src_label_names,
+            tar1_label_names,
+            tar2_label_names,
+        ],
+        threshold=optimal_threshold_pr,
+    )
+
+    print(f"  Best Precision-Recall/F1 Threshold: {optimal_threshold_pr}")
+    print(f"    Accuracy: {pr_metrics[0]}")
+    print(f"    ID Misclassified: {pr_metrics[1]} out of {len(src_scores)}")
+    print(
+        f"    OOD Misclassified: {pr_metrics[2]} out of {len(tar1_scores) + len(tar2_scores)}"
+    )
+
+    print("-" * 60)
 
 
 if __name__ == "__main__":
