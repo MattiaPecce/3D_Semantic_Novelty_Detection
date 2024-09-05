@@ -707,13 +707,11 @@ def eval_ood_md2sonn(opt, config):
         src_label_names = ["bed", "toilet", "desk", "display", "table"]
         tar1_label_names = ["chair", "shelf", "door", "sink", "sofa"]
     else:
-        raise ValueError(f"Unknown src")
+        raise ValueError(f"Unknown source")
 
     tar2_label_names = ["bag", "bin", "box", "cabinet", "pillow"]
 
-    print(f"Src: {src_label_names}")
-    print(f"Tar1: {tar1_label_names}")
-    print(f"Tar2: {tar2_label_names}")
+
 
     # MSP
     print("\n" + "#" * 80)
@@ -735,6 +733,8 @@ def eval_ood_md2sonn(opt, config):
         src_label_names,
         tar1_label_names,
         tar2_label_names,
+        "MSP",
+        opt.src,
     )
 
     eval_ood_sncore(
@@ -763,6 +763,7 @@ def eval_ood_md2sonn(opt, config):
         tar1_label_names,
         tar2_label_names,
         save_feats=opt.save_feats,
+       
     )
 
     return
@@ -778,6 +779,7 @@ def eval_OOD_with_feats(
     tar1_label_names,
     tar2_label_names,
     save_feats=None,
+
 ):
     from knn_cuda import KNN
 
@@ -861,6 +863,7 @@ def eval_OOD_with_feats(
     )  # pred is label of nearest training sample
 
     analyze_misclassification(
+        
         src_scores,
         tar1_scores,
         tar2_scores,
@@ -873,6 +876,7 @@ def eval_OOD_with_feats(
         src_label_names,
         tar1_label_names,
         tar2_label_names,
+        method = "Euclidean",
     )
 
     eval_ood_sncore(
@@ -881,6 +885,169 @@ def eval_OOD_with_feats(
         labels_list=[src_labels, tar1_labels, tar2_labels],
         src_label=1,  # confidence should be higher for ID samples
     )
+
+
+def create_misclassification_table(scores_list, preds_list, labels_list, labels_names_list, threshold,method):
+   
+    src_label_names, tar1_label_names, tar2_label_names = labels_names_list
+
+    def map_label(label):
+        if label == "table" or label == "desk":
+            return "table+desk"
+        return label
+
+    src_label_names = [map_label(name) for name in src_label_names]
+    tar1_label_names = [map_label(name) for name in tar1_label_names]
+    tar2_label_names = [map_label(name) for name in tar2_label_names]
+
+    pred_labels = ["SRC_" + name for name in set(src_label_names)]
+
+    true_labels = (
+        ["SRC_" + name for name in set(src_label_names)]
+        + ["TAR1_" + name for name in set(tar1_label_names)]
+        + ["OOD"]
+        + ["TAR2_" + name for name in set(tar2_label_names)]
+    )
+
+    df = pd.DataFrame(0, index=pred_labels, columns=true_labels)
+
+    for scores, preds, labels, label_names, prefix in zip(
+        scores_list,
+        preds_list,
+        labels_list,
+        labels_names_list,
+        ["SRC_", "TAR1_", "TAR2_"],
+    ):
+
+        for score, pred, label in zip(scores, preds, labels):
+            if score >= threshold:
+                pred_label_name = "SRC_" + map_label(src_label_names[pred])
+                true_label_name = prefix + map_label(label_names[label])
+
+                if pred_label_name != true_label_name:
+
+                    df.at[pred_label_name, true_label_name] += 1
+
+    df["OOD"] = df.filter(like="TAR2_").sum(axis=1)
+
+    cols = df.columns.tolist()
+    ood_index = cols.index("OOD")
+    tar2_start_index = cols.index("TAR2_" + tar2_label_names[0])
+    cols.insert(tar2_start_index, cols.pop(ood_index))
+    df = df[cols]
+    src = "SR1" if "chair" in src_label_names else "SR2"
+    output_file = f"misclassification_table_{method}_{src}.xlsx"
+    
+    df.to_excel(output_file)
+
+    print(f"Misclassification table saved to {output_file}")
+
+
+def evaluate_threshold(scores, labels, threshold):
+
+    predicted_labels = scores >= threshold
+    accuracy = accuracy_score(labels, predicted_labels)
+    tn, fp, fn, tp = confusion_matrix(labels, predicted_labels).ravel()
+    id_misclassified = fn
+    ood_misclassified = fp
+
+    return accuracy, id_misclassified, ood_misclassified
+
+
+def find_best_threshold(scores, labels):
+
+    precision, recall, thresholds_pr = precision_recall_curve(labels, scores)
+    f1_scores = 2 * (precision * recall) / (precision + recall)
+    optimal_threshold_pr = thresholds_pr[np.argmax(f1_scores)]
+
+    pr_metrics = evaluate_threshold(scores, labels, optimal_threshold_pr)
+
+    return (
+        optimal_threshold_pr,
+        pr_metrics,
+    )
+
+
+def id_misclassification(scores, preds, labels, labels_names, threshold):
+    low_conf_correct = {name: 0 for name in labels_names}
+    avg_conf = {name: 0.0 for name in labels_names}
+    min_conf = {name: np.inf for name in labels_names}
+
+    for score, pred, label in zip(scores, preds, labels):
+        if pred == label and score < threshold:
+            label_name = labels_names[label]
+            low_conf_correct[label_name] += 1
+            avg_conf[label_name] += score
+            if score < min_conf[label_name]:
+                min_conf[label_name] = score
+
+    for name in labels_names:
+        if low_conf_correct[name] > 0:
+            avg_conf[name] /= low_conf_correct[name]
+        else:
+            min_conf[name] = 0.0
+
+        print(
+            f"{name}: {low_conf_correct[name]} samples, min conf {min_conf[name]:.4f}, avg conf {avg_conf[name]:.4f}"
+        )
+
+
+def analyze_misclassification(
+    src_scores,
+    tar1_scores,
+    tar2_scores,
+    src_pred,
+    tar1_pred,
+    tar2_pred,
+    src_labels,
+    tar1_labels,
+    tar2_labels,
+    src_label_names,
+    tar1_label_names,
+    tar2_label_names,
+    method
+):
+    print("-" * 60)
+    print("Failurecase Analysis for " + method )
+    
+    scores = np.concatenate([src_scores, tar1_scores, tar2_scores])
+    labels = np.concatenate(
+        [
+            np.ones(len(src_scores)),  # ID
+            np.zeros(len(tar1_scores) + len(tar2_scores)),  # OOD
+        ]
+    )
+    
+    optimal_threshold_pr, pr_metrics = find_best_threshold(scores, labels)
+    print(f"    Best Precision-Recall/F1 Threshold: {optimal_threshold_pr}")
+    print(f"    Accuracy: {pr_metrics[0]}")
+    print(f"    ID Misclassified: {pr_metrics[1]} out of {len(src_scores)}")
+    print(f"    OOD Misclassified: {pr_metrics[2]} out of {len(tar1_scores) + len(tar2_scores)}")
+   
+    df_misclassifications = create_misclassification_table(
+        scores_list=[src_scores, tar1_scores, tar2_scores],
+        preds_list=[src_pred, tar1_pred, tar2_pred],
+        labels_list=[
+            src_labels,
+            tar1_labels,
+            tar2_labels,
+        ],
+        labels_names_list=[
+            src_label_names,
+            tar1_label_names,
+            tar2_label_names,
+        ],
+        threshold=optimal_threshold_pr,
+        method = method
+    )
+
+    confidence_threshold = np.percentile(scores, 25)
+    print(f"Confidence Threshold: {confidence_threshold}")
+    id_misclassification(
+        src_scores, src_pred, src_labels, src_label_names, optimal_threshold_pr
+    )
+
+    print("-" * 60)
 
 
 def main():
@@ -902,165 +1069,6 @@ def main():
         assert args.ckpt_path is not None and len(args.ckpt_path)
         print("out-of-distribution eval - Modelnet -> SONN ..")
         eval_ood_md2sonn(args, config)
-
-
-def create_misclassification_table(
-    scores_list, preds_list, labels_list, labels_names_list, threshold, output_file
-):
-    """
-    Creates a table where rows represent predicted labels from SRC names and columns represent true labels.
-    Special handling is done to merge 'table' and 'desk' as a single class 'table+desk'.
-    A special column 'OOD' is added, which is the sum of all TAR2 misclassifications.
-    The cells contain the count of misclassified samples where the confidence score exceeds the threshold.
-    Saves the resulting table to an Excel file.
-    """
-    src_label_names, tar1_label_names, tar2_label_names = labels_names_list
-
-    # Funzione di mappatura per gestire 'table' e 'desk'
-    def map_label(label):
-        if label == "table" or label == "desk":
-            return "table+desk"
-        return label
-
-    # Aggiornare i nomi delle etichette in base alla mappatura
-    src_label_names = [map_label(name) for name in src_label_names]
-    tar1_label_names = [map_label(name) for name in tar1_label_names]
-    tar2_label_names = [map_label(name) for name in tar2_label_names]
-
-    # Le righe devono rappresentare le predizioni, tutte basate su src_label_names
-    pred_labels = ["SRC_" + name for name in set(src_label_names)]
-
-    # Le colonne rappresentano le etichette reali da tutte le sorgenti
-    true_labels = (
-        ["SRC_" + name for name in set(src_label_names)]
-        + ["TAR1_" + name for name in set(tar1_label_names)]
-        + ["OOD"]
-        + ["TAR2_" + name for name in set(tar2_label_names)]
-    )
-
-    # Inizializzare un DataFrame con 0 in tutte le celle
-    df = pd.DataFrame(0, index=pred_labels, columns=true_labels)
-
-    # Riempire il DataFrame con conteggi di campioni misclassificati
-    for scores, preds, labels, label_names, prefix in zip(
-        scores_list,
-        preds_list,
-        labels_list,
-        labels_names_list,
-        ["SRC_", "TAR1_", "TAR2_"],
-    ):
-
-        for score, pred, label in zip(scores, preds, labels):
-            if score >= threshold:
-                pred_label_name = "SRC_" + map_label(
-                    src_label_names[pred]
-                )  # Usare solo le etichette di src per le predizioni
-                true_label_name = prefix + map_label(
-                    label_names[label]
-                )  # La vera etichetta può provenire da qualsiasi sorgente
-
-                if (
-                    pred_label_name != true_label_name
-                ):  # Incrementa solo se è una misclassificazione
-                    # Incrementare il conteggio nella cella corrispondente
-                    df.at[pred_label_name, true_label_name] += 1
-
-    # Calcolare la somma di tutte le colonne TAR2 e inserirla nella colonna OOD
-    df["OOD"] = df.filter(like="TAR2_").sum(axis=1)
-
-    # Spostare la colonna 'OOD' prima delle colonne TAR2
-    cols = df.columns.tolist()
-    ood_index = cols.index("OOD")
-    tar2_start_index = cols.index("TAR2_" + tar2_label_names[0])
-    cols.insert(tar2_start_index, cols.pop(ood_index))
-    df = df[cols]
-
-    # Salvare il DataFrame in un file Excel
-    df.to_excel(output_file)
-
-    print(f"Misclassification table saved to {output_file}")
-
-
-def evaluate_threshold(scores, labels, threshold):
-    # Predicted labels based on the threshold
-    predicted_labels = scores >= threshold
-    # Calculate accuracy
-    accuracy = accuracy_score(labels, predicted_labels)
-    # Calculate confusion matrix
-    tn, fp, fn, tp = confusion_matrix(labels, predicted_labels).ravel()
-    id_misclassified = fn  # ID samples erroneously classified as OOD
-    ood_misclassified = fp  # OOD samples erroneously classified as ID
-    return accuracy, id_misclassified, ood_misclassified
-
-
-def find_best_threshold(scores, labels):
-
-    # Precision-Recall Curve and F1 Score
-    precision, recall, thresholds_pr = precision_recall_curve(labels, scores)
-    f1_scores = 2 * (precision * recall) / (precision + recall)
-    optimal_threshold_pr = thresholds_pr[np.argmax(f1_scores)]
-
-    # Evaluate metrics for each threshold
-    pr_metrics = evaluate_threshold(scores, labels, optimal_threshold_pr)
-
-    return (
-        optimal_threshold_pr,
-        pr_metrics,
-    )
-
-
-def analyze_misclassification(
-    src_scores,
-    tar1_scores,
-    tar2_scores,
-    src_pred,
-    tar1_pred,
-    tar2_pred,
-    src_labels,
-    tar1_labels,
-    tar2_labels,
-    src_label_names,
-    tar1_label_names,
-    tar2_label_names,
-):
-
-    print("Best Thresholds ")
-
-    # Create labels (1 for ID, 0 for OOD)
-    scores = np.concatenate([src_scores, tar1_scores, tar2_scores])
-    labels = np.concatenate(
-        [
-            np.ones(len(src_scores)),  # ID
-            np.zeros(len(tar1_scores) + len(tar2_scores)),  # OOD
-        ]
-    )
-
-    # Find the best threshold and evaluate metrics
-    optimal_threshold_pr, pr_metrics = find_best_threshold(scores, labels)
-    df_misclassifications = create_misclassification_table(
-        scores_list=[src_scores, tar1_scores, tar2_scores],
-        preds_list=[src_pred, tar1_pred, tar2_pred],
-        labels_list=[
-            src_labels,
-            tar1_labels,
-            tar2_labels,
-        ],
-        labels_names_list=[
-            src_label_names,
-            tar1_label_names,
-            tar2_label_names,
-        ],
-        threshold=optimal_threshold_pr,
-    )
-
-    print(f"  Best Precision-Recall/F1 Threshold: {optimal_threshold_pr}")
-    print(f"    Accuracy: {pr_metrics[0]}")
-    print(f"    ID Misclassified: {pr_metrics[1]} out of {len(src_scores)}")
-    print(
-        f"    OOD Misclassified: {pr_metrics[2]} out of {len(tar1_scores) + len(tar2_scores)}"
-    )
-
-    print("-" * 60)
 
 
 if __name__ == "__main__":
