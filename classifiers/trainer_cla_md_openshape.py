@@ -357,20 +357,9 @@ def eval_ood_md2sonn(opt, config):
     classes_dict = eval(opt.src)
     n_classes = len(set(classes_dict.values()))
 
-    #model = PointBertG14()
     model = Classifier(args=DotConfig(config['model']), num_classes=n_classes, loss=opt.loss, cs=opt.cs)
-    # args.enco_name will contain the name of the chosen model, passed through .yaml file in the command line
-    # ckt_weights = torch.load(opt.ckpt_path, map_location='cpu')['model']
-    # ckt_weights = sanitize_model_dict(ckt_weights)
-    # ckt_weights = convert_model_state(ckt_weights, model.state_dict())
     ckt = torch.load(opt.ckpt_path, map_location="cpu")
     model_state_dict = model.state_dict()
-
-    print("DICT KEYS CHECKPOINT")
-    print(ckt["state_dict"].keys())
-
-    print("DICT KEYS ATTESE DAL MODELLO")
-    print(model_state_dict.keys())
 
     new_state_dict = {}
     for key, value in ckt["state_dict"].items():
@@ -378,12 +367,8 @@ def eval_ood_md2sonn(opt, config):
         new_key = key.replace("module.", "")
         new_state_dict[new_key] = value
 
-    print("DICT KEYS CHECKPOINT MODIFICATE")
-    print(new_state_dict.keys())
-
     model.load_state_dict(new_state_dict, False)
     print(f"Model params count: {count_parameters(model) / 1000000 :.4f} M")
-    # print("Load weights: ", model.load_state_dict(ckt_weights, strict=True))
     model = model.cuda().eval()
     print(model)
 
