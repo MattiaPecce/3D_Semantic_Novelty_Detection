@@ -36,7 +36,8 @@ import wandb
 from base_args import add_base_args
 from sklearn.metrics import (
     accuracy_score,
-    balanced_accuracy_scoreroc_curve,
+    balanced_accuracy_score,
+    roc_curve,
     precision_recall_curve,
     accuracy_score,
     confusion_matrix,
