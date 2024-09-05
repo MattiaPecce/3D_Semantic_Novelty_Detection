@@ -735,7 +735,7 @@ def eval_ood_md2sonn(opt, config):
         tar1_label_names,
         tar2_label_names,
         "MSP",
-        opt.src,
+
     )
 
     eval_ood_sncore(
