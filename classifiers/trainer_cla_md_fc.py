@@ -1011,7 +1011,8 @@ def analyze_misclassification(
     print("-" * 60)
     print("Failurecase Analysis for " + method )
     
-    scores = np.concatenate([src_scores, tar1_scores, tar2_scores])
+    scores = np.concatenate([src_scores.cpu().numpy(), tar1_scores.cpu().numpy(), tar2_scores.cpu().numpy()])
+
     labels = np.concatenate(
         [
             np.ones(len(src_scores)),  # ID
